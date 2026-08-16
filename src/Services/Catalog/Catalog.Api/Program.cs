@@ -1,6 +1,8 @@
 
 
 
+using Catalog.Api.Data;
+
 var builder = WebApplication.CreateBuilder(args);
 // Add Services to the Container.
 
@@ -21,6 +23,11 @@ builder.Services.AddMarten(opts =>
 {
     opts.Connection(builder.Configuration.GetConnectionString("database")!);
 }).UseLightweightSessions();
+
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.InitializeMartenWith<CatalogInitialData>();
+}
 
 builder.Services.AddExceptionHandler<CustomExceptionHandler>();
 
