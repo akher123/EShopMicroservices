@@ -1,6 +1,4 @@
-﻿using Catalog.Api.Products.CreateProduct;
-
-namespace Catalog.Api.Products.DeleteProduct;
+﻿namespace Catalog.Api.Products.DeleteProduct;
 
 public record DeleteProductResponse(bool IsSuccess);
 
@@ -15,7 +13,7 @@ public class DeleteProductEndpoint : ICarterModule
             var response = result.Adapt<DeleteProductResponse>();
             return Results.Ok(response);
         }).WithName("DeleteProduct")
-       .Produces<CreateProductResponse>(StatusCodes.Status201Created)
+       .Produces<DeleteProductResponse>(StatusCodes.Status201Created)
        .ProducesProblem(StatusCodes.Status400BadRequest)
        .WithSummary("Delete product")
        .WithDescription("Delete product");
