@@ -1,5 +1,8 @@
 using Basket.Api.Data;
+using Basket.Api.Exceptions.Handler;
+using HealthChecks.UI.Client;
 using Marten;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 // Add services to the container
@@ -22,12 +25,23 @@ builder.Services.AddMarten(opts =>
 
 }).UseLightweightSessions();
 
-builder.Services.AddScoped<IBasketRepository, BasketRepository>();
+builder.Services.AddExceptionHandler<CustomExceptionHandler>();
 
+builder.Services.AddScoped<IBasketRepository, BasketRepository>();
+builder.Services.AddHealthChecks()
+       .AddNpgSql(builder.Configuration.GetConnectionString("Database")!);
 
 var app = builder.Build();
 
+
 // Configure the HTTP request pipeline
 app.MapCarter();
+
+app.UseExceptionHandler(opts => { });
+
+app.UseHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+});
 
 app.Run();
