@@ -1,9 +1,11 @@
-﻿namespace Basket.Api.Basket.DeleteBasket
+﻿using Basket.Api.Data;
+
+namespace Basket.Api.Basket.DeleteBasket
 {
     public record DeleteBasketCommand(string UserName):ICommand<DeleteBasketResult>;
     public record DeleteBasketResult(bool IsSuccess);
 
-    public class DeleteBasketCommandValidator : AbstractValidator<DeleteBasketCommand>
+    public class DeleteBasketCommandValidator: AbstractValidator<DeleteBasketCommand>
     {
         public DeleteBasketCommandValidator()
         {
@@ -11,11 +13,12 @@
         }
     }
 
-    public class DeleteBasketCommandHandler : ICommandHandler<DeleteBasketCommand, DeleteBasketResult>
+    public class DeleteBasketCommandHandler(IBasketRepository repository) : ICommandHandler<DeleteBasketCommand, DeleteBasketResult>
     {
-        public async Task<DeleteBasketResult> Handle(DeleteBasketCommand request, CancellationToken cancellationToken)
+        public async Task<DeleteBasketResult> Handle(DeleteBasketCommand command, CancellationToken cancellationToken)
         {
-            return new DeleteBasketResult(true);
+            var result = await repository.DeleteBasketAsync(command.UserName, cancellationToken);
+            return new DeleteBasketResult(result);
         }
     }
 }

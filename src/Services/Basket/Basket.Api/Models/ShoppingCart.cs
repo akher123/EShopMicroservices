@@ -1,7 +1,10 @@
-﻿namespace Basket.Api.Models;
+﻿using JasperFx;
+
+namespace Basket.Api.Models;
 
 public class ShoppingCart
 {
+
     public string UserName { get; set; } = default!;
     public List<ShoppingCartItem> Items { get; set; } = new();
 
