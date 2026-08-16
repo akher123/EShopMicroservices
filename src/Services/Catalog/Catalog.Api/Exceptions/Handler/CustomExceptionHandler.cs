@@ -11,11 +11,11 @@ internal class CustomExceptionHandler(ILogger<CustomExceptionHandler> logger) : 
             "Error Message: {exceptionMessage}, Time of occurrence {time}", exception.Message, DateTime.UtcNow);
         (string Detail, string Title, int SttuseCode) details = exception switch
         {
-        InvalidServerException=>(
-            exception.Message,
-                exception.GetType().Name,
-                context.Response.StatusCode = StatusCodes.Status500InternalServerError
-            ),
+            InvalidServerException => (
+                exception.Message,
+                    exception.GetType().Name,
+                    context.Response.StatusCode = StatusCodes.Status500InternalServerError
+                ),
             ValidationException => (
                exception.Message,
                exception.GetType().Name,
@@ -41,7 +41,6 @@ internal class CustomExceptionHandler(ILogger<CustomExceptionHandler> logger) : 
 
         var pronlemDetails = new ProblemDetails
         {
-
             Title = details.Title,
             Detail = details.Detail,
             Status = details.SttuseCode,
@@ -52,7 +51,7 @@ internal class CustomExceptionHandler(ILogger<CustomExceptionHandler> logger) : 
         {
             pronlemDetails.Extensions.Add("ValidationErrors", validationExtension.Errors);
         }
-        await context.Response.WriteAsJsonAsync(pronlemDetails,cancellationToken);
+        await context.Response.WriteAsJsonAsync(pronlemDetails, cancellationToken);
         return true;
     }
 }

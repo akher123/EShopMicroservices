@@ -16,7 +16,7 @@ public class DeleteProductCommandHandler(IDocumentSession session, ILogger<Delet
 {
     public async Task<DeleteProductResult> Handle(DeleteProductCommand command, CancellationToken cancellationToken)
     {
-        logger.LogInformation("DeleteProductCommandHandler.Handle called with {@Command}", command);
+       // logger.LogInformation("DeleteProductCommandHandler.Handle called with {@Command}", command);
         session.Delete<Product>(command.Id);
         await  session.SaveChangesAsync(cancellationToken);
         return new DeleteProductResult(true);

@@ -1,7 +1,4 @@
-﻿using Catalog.Api.Products.CreateProduct;
-using FluentValidation;
-
-namespace Catalog.Api.Products.UpdateProduct;
+﻿namespace Catalog.Api.Products.UpdateProduct;
 
 public record UpdateProductCommand(Guid Id, string Name, List<string> Catagory, string Description, string ImageFile, decimal Price)
     : ICommand<UpdateProductResult>;
@@ -23,7 +20,7 @@ public class UpdateProductCommandHandler(IDocumentSession session,ILogger<Update
 {
     public async Task<UpdateProductResult> Handle(UpdateProductCommand command, CancellationToken cancellationToken)
     {
-        logger.LogInformation("UpdateProductCommandHandler.Handle called with {@Command}", command);
+      //  logger.LogInformation("UpdateProductCommandHandler.Handle called with {@Command}", command);
         var product = await session.LoadAsync<Product>(command.Id, cancellationToken);
         if (product is null)
         {
