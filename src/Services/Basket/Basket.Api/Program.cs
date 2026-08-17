@@ -28,8 +28,18 @@ builder.Services.AddMarten(opts =>
 builder.Services.AddExceptionHandler<CustomExceptionHandler>();
 
 builder.Services.AddScoped<IBasketRepository, BasketRepository>();
+
+builder.Services.Decorate<IBasketRepository, CachedBasketRepository>(); // Scrutor Library
+
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis");
+});
+
 builder.Services.AddHealthChecks()
-       .AddNpgSql(builder.Configuration.GetConnectionString("Database")!);
+       .AddNpgSql(builder.Configuration.GetConnectionString("Database")!)
+       .AddRedis(builder.Configuration.GetConnectionString("Redis")!);
+
 
 var app = builder.Build();
 
