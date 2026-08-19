@@ -1,6 +1,14 @@
-var builder = WebApplication.CreateBuilder(args);
-var app = builder.Build();
+using Ordering.Api;
+using Ordering.Application;
+using Ordering.Infrastructure;
 
-app.MapGet("/", () => "Hello World!");
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services
+    .AddAppllicationServices()
+    .AddInfrastructureServices(builder.Configuration)
+    .AddApiServices();
+
+var app = builder.Build();
 
 app.Run();
