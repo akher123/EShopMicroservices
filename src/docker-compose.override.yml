@@ -28,7 +28,15 @@ services:
     restart: always
     ports:
       - "6379:6379"
-
+  orderdb:
+    container_name: orderdb
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=Pelican!(2
+    restart: always
+    ports:
+      - "1433:1433"
+  
   catalog.api:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development

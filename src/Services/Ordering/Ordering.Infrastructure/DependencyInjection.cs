@@ -1,7 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Configuration;
-
-namespace Ordering.Infrastructure;
+﻿namespace Ordering.Infrastructure;
 
 public static class DependencyInjection
 {
@@ -11,9 +8,10 @@ public static class DependencyInjection
 
         // Add services to the Container
 
-        //services.AddDbContext<ApplicationDbContext>(options => options.UserSqlServer(connectionString));
+        services.AddDbContext<ApplicationDbContext>(options =>
+           options.UseSqlServer(connectionString));
 
-      //  services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
+      // services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
 
         return services;
     }

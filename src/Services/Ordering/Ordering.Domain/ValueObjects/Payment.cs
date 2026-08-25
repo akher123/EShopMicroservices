@@ -8,14 +8,14 @@ public class Payment
 
     public string CVV { get; } = default!;
 
-    public string PaymentMethod { get; } = default!;
+    public int PaymentMethod { get; } = default!;
 
     protected Payment()
     {
         
     }
 
-    public Payment(string? cardName, string? cardNumber, string expiration, string cVV, string paymentMethod)
+    public Payment(string? cardName, string? cardNumber, string expiration, string cVV, int paymentMethod)
     {
         CardName = cardName;
         CardNumber = cardNumber;
@@ -24,7 +24,7 @@ public class Payment
         PaymentMethod = paymentMethod;
     }
 
-    public static Payment Of(string cardName, string cardNumber, string expiration, string cvv, string paymentMethod)
+    public static Payment Of(string cardName, string cardNumber, string expiration, string cvv, int paymentMethod)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(cardName, nameof(cardName));
         ArgumentException.ThrowIfNullOrWhiteSpace(cardNumber, nameof(cardNumber));

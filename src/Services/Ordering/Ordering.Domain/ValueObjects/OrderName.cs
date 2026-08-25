@@ -6,7 +6,7 @@ public record OrderName
     public string Value { get; }
     public OrderName(string value) => Value = value;
 
-    private static OrderName Of(string value)
+    public static OrderName Of(string value)
     {
         ArgumentNullException.ThrowIfNullOrWhiteSpace(value, nameof(OrderName));
         ArgumentOutOfRangeException.ThrowIfNotEqual(value.Length, defaultLenght);
