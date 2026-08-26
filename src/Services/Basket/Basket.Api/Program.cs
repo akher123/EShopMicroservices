@@ -1,10 +1,10 @@
 using Basket.Api.Data;
 using Basket.Api.Exceptions.Handler;
+using BuildingBlocks.Messaging.MassTransit;
 using Discount.Grpc;
 using HealthChecks.UI.Client;
-using Marten;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using static Discount.Grpc.DiscountProtoService;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 // Add services to the container
@@ -52,7 +52,8 @@ builder.Services.AddGrpcClient<DiscountProtoService.DiscountProtoServiceClient>(
         };
         return handler;
     });
-
+// Async Communication Services
+builder.Services.AddMesageBroker(builder.Configuration);
 // Cross-Cutting Services
 builder.Services.AddHealthChecks()
        .AddNpgSql(builder.Configuration.GetConnectionString("Database")!)
