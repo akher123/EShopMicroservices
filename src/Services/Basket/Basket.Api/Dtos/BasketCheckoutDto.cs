@@ -18,7 +18,7 @@ public class BasketCheckoutDto
     public string ZipCode { get; set; } = default!;
 
     // Payment
-    public string CarName { get; set; } = default!;
+    public string CardName { get; set; } = default!;
     public string CardNumber { get; set; } = default!;
     public string Expiration { get; set; } = default!;
     public string CVV { get; set; } = default!;

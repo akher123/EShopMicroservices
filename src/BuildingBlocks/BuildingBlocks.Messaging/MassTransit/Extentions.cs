@@ -17,11 +17,11 @@ public static class Extentions
                 config.AddConsumers(assembly);
             config.UsingRabbitMq((context, configurator) =>
             {
-                configurator.Host(new Uri(configuration["MessageBroker.Host"]!), host
+                configurator.Host(new Uri(configuration["MessageBroker:Host"]!), host
                     =>
                 {
-                    host.Username(configuration["MessageBroker.UserName"]!);
-                    host.Password(configuration["MessageBroker.Password"]!);
+                    host.Username(configuration["MessageBroker:UserName"]!);
+                    host.Password(configuration["MessageBroker:Password"]!);
                 });
                 configurator.ConfigureEndpoints(context);
             });
