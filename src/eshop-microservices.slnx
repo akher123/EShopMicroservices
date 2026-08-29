@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/ApiGateways/">
+    <Project Path="ApiGateways/ApiGateway/ApiGateway.csproj" Id="43b43238-024f-42ba-89d1-8f951fffb2ba" />
+  </Folder>
   <Folder Name="/BuildingBlocks/">
     <Project Path="BuildingBlocks/BuildingBlocks.Messaging/BuildingBlocks.Messaging.csproj" Id="199098e1-4e7a-4d5b-a519-be6d20509bf5" />
     <Project Path="BuildingBlocks/BuildingBlocks/BuildingBlocks.csproj" Id="913aeed9-bbac-4256-a019-0f204f8c2208" />
@@ -18,6 +21,9 @@
     <Project Path="Services/Ordering/Ordering.Application/Ordering.Application.csproj" Id="4b220384-6214-4d87-9fbf-44b0d0c2c60d" />
     <Project Path="Services/Ordering/Ordering.Domain/Ordering.Domain.csproj" Id="a35cd904-55c0-4ee2-a0bb-86ef6ec712b5" />
     <Project Path="Services/Ordering/Ordering.Infrastructure/Ordering.Infrastructure.csproj" Id="ea5a75dd-0fd0-43d8-8ff8-4f41e6894d52" />
+  </Folder>
+  <Folder Name="/WebApps/">
+    <Project Path="WebApps/Shopping.Web/Shopping.Web.csproj" Id="af872c35-e951-4bd9-9cf6-b8be2f54038d" />
   </Folder>
   <Project Path="docker-compose.dcproj">
     <Build />
