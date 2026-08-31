@@ -110,7 +110,10 @@ src/
 From the `src` folder:
 
 ```bash
-docker compose up --build
+docker compose build --no-cache
+docker compose up -d
+docker compose ps
+
 ```
 
 ### Service Endpoints (default ports)
