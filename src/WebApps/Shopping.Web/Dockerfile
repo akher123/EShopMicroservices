@@ -14,6 +14,7 @@ ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["WebApps/Shopping.Web/Shopping.Web.csproj", "WebApps/Shopping.Web/"]
 COPY ["BuildingBlocks/BuildingBlocks.Logging/BuildingBlocks.Logging.csproj", "BuildingBlocks/BuildingBlocks.Logging/"]
+COPY ["BuildingBlocks/BuildingBlocks.Resilience/BuildingBlocks.Resilience.csproj", "BuildingBlocks/BuildingBlocks.Resilience/"]
 RUN dotnet restore "./WebApps/Shopping.Web/Shopping.Web.csproj"
 COPY . .
 WORKDIR "/src/WebApps/Shopping.Web"

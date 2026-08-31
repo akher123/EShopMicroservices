@@ -5,6 +5,7 @@
   <Folder Name="/BuildingBlocks/">
     <Project Path="BuildingBlocks/BuildingBlocks.Logging/BuildingBlocks.Logging.csproj" />
     <Project Path="BuildingBlocks/BuildingBlocks.Messaging/BuildingBlocks.Messaging.csproj" Id="199098e1-4e7a-4d5b-a519-be6d20509bf5" />
+    <Project Path="BuildingBlocks/BuildingBlocks.Resilience/BuildingBlocks.Resilience.csproj" />
     <Project Path="BuildingBlocks/BuildingBlocks/BuildingBlocks.csproj" Id="913aeed9-bbac-4256-a019-0f204f8c2208" />
   </Folder>
   <Folder Name="/Services/" />

@@ -2,6 +2,7 @@ using Basket.Api.Data;
 using Basket.Api.Exceptions.Handler;
 using BuildingBlocks.Logging.Serilog;
 using BuildingBlocks.Messaging.MassTransit;
+using BuildingBlocks.Resilience;
 using Discount.Grpc;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -54,7 +55,8 @@ try
                 HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
             };
             return handler;
-        });
+        })
+        .AddDefaultResilienceHandler(builder.Configuration, "DiscountGrpc");
 
     builder.Services.AddMesageBroker(builder.Configuration);
 

@@ -1,4 +1,5 @@
 using BuildingBlocks.Logging.Serilog;
+using BuildingBlocks.Resilience;
 
 SerilogExtensions.ConfigureBootstrapLogger();
 
@@ -14,17 +15,20 @@ try
         .ConfigureHttpClient(c =>
         {
             c.BaseAddress = new Uri(builder.Configuration["ApiSettings:GatewayAddress"]!);
-        });
+        })
+        .AddDefaultResilienceHandler(builder.Configuration, "CatalogService");
     builder.Services.AddRefitClient<IBasketService>()
         .ConfigureHttpClient(c =>
         {
             c.BaseAddress = new Uri(builder.Configuration["ApiSettings:GatewayAddress"]!);
-        });
+        })
+        .AddDefaultResilienceHandler(builder.Configuration, "BasketService");
     builder.Services.AddRefitClient<IOrderingService>()
         .ConfigureHttpClient(c =>
         {
             c.BaseAddress = new Uri(builder.Configuration["ApiSettings:GatewayAddress"]!);
-        });
+        })
+        .AddDefaultResilienceHandler(builder.Configuration, "OrderingService");
 
     var app = builder.Build();
 
