@@ -26,6 +26,7 @@
   </Folder>
   <Folder Name="/WebApps/">
     <Project Path="WebApps/Shopping.Web/Shopping.Web.csproj" Id="af872c35-e951-4bd9-9cf6-b8be2f54038d" />
+    <Project Path="WebApps/WebStatus/WebStatus.csproj" Id="c4e8f1a2-3b5d-4c7e-9f0a-1d2e3f4a5b6c" />
   </Folder>
   <Project Path="docker-compose.dcproj">
     <Build />

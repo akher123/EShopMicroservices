@@ -1,5 +1,8 @@
 using BuildingBlocks.Logging.Serilog;
+using HealthChecks.UI.Client;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 SerilogExtensions.ConfigureBootstrapLogger();
 
@@ -21,12 +24,20 @@ try
         });
     });
 
+    builder.Services.AddHealthChecks()
+        .AddCheck("self", () => HealthCheckResult.Healthy());
+
     var app = builder.Build();
 
     app.UseCustomSerilogRequestLogging();
 
     app.UseRateLimiter();
     app.MapReverseProxy();
+
+    app.UseHealthChecks("/health", new HealthCheckOptions
+    {
+        ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+    });
 
     app.Run();
 }

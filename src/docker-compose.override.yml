@@ -184,3 +184,21 @@ services:
     volumes:
       - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
       - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
+
+  webstatus:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ElasticConfiguration__Uri=http://elasticsearch:9200
+    depends_on:
+      - catalog.api
+      - basket.api
+      - ordering.api
+      - discount.grpc
+      - apigateway
+      - shopping.web
+    ports:
+      - "6006:8080"
+    volumes:
+      - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
+      - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro

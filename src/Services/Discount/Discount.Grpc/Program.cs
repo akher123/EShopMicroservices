@@ -1,6 +1,8 @@
 using BuildingBlocks.Logging.Serilog;
 using Discount.Grpc.Data;
 using Discount.Grpc.Services;
+using HealthChecks.UI.Client;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 
 SerilogExtensions.ConfigureBootstrapLogger();
@@ -16,6 +18,9 @@ try
     builder.Services.AddDbContext<DicountContext>(opts =>
         opts.UseSqlite(builder.Configuration.GetConnectionString("Database")));
 
+    builder.Services.AddHealthChecks()
+        .AddSqlite(builder.Configuration.GetConnectionString("Database")!);
+
     var app = builder.Build();
 
     app.UseCustomSerilogRequestLogging();
@@ -25,6 +30,11 @@ try
     app.MapGrpcService<DiscountService>();
 
     app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
+
+    app.UseHealthChecks("/health", new HealthCheckOptions
+    {
+        ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+    });
 
     app.Run();
 }
