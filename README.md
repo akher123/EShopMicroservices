@@ -1,6 +1,6 @@
 # EShopMicroservices
 
-A sample e-commerce application built with **.NET microservices**, demonstrating distributed architecture patterns including API gateway routing, gRPC inter-service communication, event-driven messaging, and containerized deployment.
+A sample e-commerce application built with **.NET microservices**, demonstrating distributed architecture patterns including API gateway routing, gRPC inter-service communication, event-driven messaging, centralized structured logging, and containerized deployment.
 
 ## Technology Summary
 
@@ -22,7 +22,7 @@ A sample e-commerce application built with **.NET microservices**, demonstrating
 | **Event-Driven Architecture** | Basket checkout → RabbitMQ → Ordering integration |
 | **Domain-Driven Design (DDD)** | Ordering domain events and aggregates |
 | **API Gateway** | YARP reverse proxy with rate limiting |
-| **Building Blocks** | Shared libraries for cross-cutting concerns and messaging |
+| **Building Blocks** | Shared libraries for cross-cutting concerns, logging, and messaging |
 
 ### Services
 
@@ -52,6 +52,84 @@ A sample e-commerce application built with **.NET microservices**, demonstrating
 | **Scrutor** | Assembly scanning and DI registration (Basket) |
 | **Microsoft.FeatureManagement** | Feature flags (Ordering) |
 | **AspNetCore.HealthChecks** | Health check endpoints for PostgreSQL, Redis, SQL Server |
+| **Serilog** | Structured logging across all host services |
+| **Elastic.Serilog.Sinks** | ECS-formatted logs shipped to Elasticsearch 8.x data streams |
+| **Elasticsearch / Kibana** | Centralized log storage and visualization |
+
+### Observability & Logging
+
+All host services use the shared **BuildingBlocks.Logging** library for consistent structured logging via **Serilog**, with logs shipped to **Elasticsearch** and viewed in **Kibana**.
+
+| Component | Role |
+|---|---|
+| **BuildingBlocks.Logging** | Shared Serilog setup, enrichers, console + Elasticsearch sinks |
+| **Serilog.AspNetCore** | Replaces default ASP.NET Core logging; HTTP request logging |
+| **Elastic.Serilog.Sinks** | Official Elastic sink (ECS format, data streams) |
+| **Elasticsearch 8.15** | Log storage (single-node, security disabled for local dev) |
+| **Kibana 8.15** | Log search, filtering, and dashboards |
+
+Each service writes to its own ECS data stream:
+
+| Service | Data stream |
+|---|---|
+| Catalog.Api | `logs-catalog-api-default` |
+| Basket.Api | `logs-basket-api-default` |
+| Discount.Grpc | `logs-discount-grpc-default` |
+| Ordering.Api | `logs-ordering-api-default` |
+| ApiGateway | `logs-apigateway-default` |
+| Shopping.Web | `logs-shopping-web-default` |
+
+Logs are enriched with `service.name`, machine name, and environment name. Filter in Kibana by `service.name` (e.g. `catalog-api`, `basket-api`).
+
+**Configuration** (in each service's `appsettings.json`):
+
+```json
+{
+  "ElasticConfiguration": {
+    "Uri": "http://localhost:9200"
+  },
+  "Serilog": {
+    "MinimumLevel": {
+      "Default": "Information",
+      "Override": {
+        "Microsoft": "Warning",
+        "Microsoft.AspNetCore": "Warning",
+        "System": "Warning"
+      }
+    }
+  }
+}
+```
+
+When running in Docker Compose, `ElasticConfiguration__Uri=http://elasticsearch:9200` is set via environment variables.
+
+**Wiring in `Program.cs`** (via `BuildingBlocks.Logging.Serilog`):
+
+```csharp
+using BuildingBlocks.Logging.Serilog;
+
+SerilogExtensions.ConfigureBootstrapLogger();
+
+try
+{
+    var builder = WebApplication.CreateBuilder(args);
+    builder.AddCustomSerilog("Catalog.Api");
+
+    // ... service registration ...
+
+    var app = builder.Build();
+    app.UseCustomSerilogRequestLogging();
+    app.Run();
+}
+catch (Exception ex)
+{
+    SerilogExtensions.LogFatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    SerilogExtensions.CloseAndFlush();
+}
+```
 
 ### Data Stores
 
@@ -86,6 +164,7 @@ src/
 │   └── ApiGateway/              # YARP reverse proxy
 ├── BuildingBlocks/
 │   ├── BuildingBlocks/          # Shared CQRS, validation, behaviors
+│   ├── BuildingBlocks.Logging/  # Serilog + Elasticsearch logging setup
 │   └── BuildingBlocks.Messaging/# MassTransit + RabbitMQ setup
 ├── Services/
 │   ├── Basket/Basket.Api/
@@ -127,6 +206,7 @@ docker compose ps
 | API Gateway | 6004 | 6064 |
 | Shopping Web | 6005 | 6065 |
 | RabbitMQ Management UI | — | 15672 |
+| Kibana | 5601 | — |
 
 ### Infrastructure Ports
 
@@ -137,3 +217,16 @@ docker compose ps
 | Redis | 6379 |
 | SQL Server | 1433 |
 | RabbitMQ | 5672 |
+| Elasticsearch | 9200 |
+| Kibana | 5601 |
+
+### Viewing Logs in Kibana
+
+1. Start the stack with Docker Compose (Elasticsearch and Kibana are included).
+2. Open Kibana at [http://localhost:5601](http://localhost:5601).
+3. Go to **Stack Management → Data Views → Create data view**.
+4. Use index pattern `logs-*` and timestamp field `@timestamp`.
+5. Open **Discover** and filter by `service.name` (e.g. `shopping-web`, `catalog-api`).
+6. If data streams are not visible, enable **Include hidden data streams** in the data view advanced settings.
+
+Generate log traffic by browsing Shopping.Web or calling APIs through the gateway.
