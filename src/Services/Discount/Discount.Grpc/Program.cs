@@ -1,23 +1,38 @@
+using BuildingBlocks.Logging.Serilog;
 using Discount.Grpc.Data;
 using Discount.Grpc.Services;
 using Microsoft.EntityFrameworkCore;
 
-var builder = WebApplication.CreateBuilder(args);
+SerilogExtensions.ConfigureBootstrapLogger();
 
-// Add services to the container.
-builder.Services.AddGrpc();
+try
+{
+    var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<DicountContext>(opts =>
-    opts.UseSqlite(builder.Configuration.GetConnectionString("Database")));
+    builder.AddCustomSerilog("Discount.Grpc");
 
-var app = builder.Build();
+    builder.Services.AddGrpc();
 
-// Configure the HTTP request pipeline.
+    builder.Services.AddDbContext<DicountContext>(opts =>
+        opts.UseSqlite(builder.Configuration.GetConnectionString("Database")));
 
-app.UseMigration();
+    var app = builder.Build();
 
-app.MapGrpcService<DiscountService>();
+    app.UseCustomSerilogRequestLogging();
 
-app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
+    app.UseMigration();
 
-app.Run();
+    app.MapGrpcService<DiscountService>();
+
+    app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
+
+    app.Run();
+}
+catch (Exception ex)
+{
+    SerilogExtensions.LogFatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    SerilogExtensions.CloseAndFlush();
+}

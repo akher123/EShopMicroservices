@@ -1,49 +1,64 @@
+using BuildingBlocks.Logging.Serilog;
 using Catalog.Api.Data;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
-var builder = WebApplication.CreateBuilder(args);
-// Add Services to the Container.
+SerilogExtensions.ConfigureBootstrapLogger();
 
-var assembly = typeof(Program).Assembly;
-
-builder.Services.AddMediatR(config =>
+try
 {
-    config.RegisterServicesFromAssemblies(assembly);
-    config.AddOpenBehavior(typeof(ValidationBehavior<,>));
-    config.AddOpenBehavior(typeof(LoggingBehavior<,>));
-});
+    var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddValidatorsFromAssembly(assembly);
+    builder.AddCustomSerilog("Catalog.Api");
 
-builder.Services.AddCarter();
+    var assembly = typeof(Program).Assembly;
 
-builder.Services.AddMarten(opts =>
-{
-    opts.Connection(builder.Configuration.GetConnectionString("Database")!);
-}).UseLightweightSessions();
+    builder.Services.AddMediatR(config =>
+    {
+        config.RegisterServicesFromAssemblies(assembly);
+        config.AddOpenBehavior(typeof(ValidationBehavior<,>));
+        config.AddOpenBehavior(typeof(LoggingBehavior<,>));
+    });
 
-if (builder.Environment.IsDevelopment())
-{
-    builder.Services.InitializeMartenWith<CatalogInitialData>();
+    builder.Services.AddValidatorsFromAssembly(assembly);
+
+    builder.Services.AddCarter();
+
+    builder.Services.AddMarten(opts =>
+    {
+        opts.Connection(builder.Configuration.GetConnectionString("Database")!);
+    }).UseLightweightSessions();
+
+    if (builder.Environment.IsDevelopment())
+    {
+        builder.Services.InitializeMartenWith<CatalogInitialData>();
+    }
+
+    builder.Services.AddExceptionHandler<CustomExceptionHandler>();
+
+    builder.Services.AddHealthChecks()
+           .AddNpgSql(builder.Configuration.GetConnectionString("Database")!);
+
+    var app = builder.Build();
+
+    app.UseCustomSerilogRequestLogging();
+
+    app.MapCarter();
+
+    app.UseExceptionHandler(opts => { });
+
+    app.UseHealthChecks("/health", new HealthCheckOptions
+    {
+        ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+    });
+
+    app.Run();
 }
-
-builder.Services.AddExceptionHandler<CustomExceptionHandler>();
-
-builder.Services.AddHealthChecks()
-       .AddNpgSql(builder.Configuration.GetConnectionString("Database")!);
-
-
-var app = builder.Build();
-
-// Configure the HTTP request Pipeline.
-app.MapCarter();
-
-app.UseExceptionHandler(opts => { });
-
-app.UseHealthChecks("/health", new HealthCheckOptions
+catch (Exception ex)
 {
-    ResponseWriter=UIResponseWriter.WriteHealthCheckUIResponse
-});
-
-app.Run();
+    SerilogExtensions.LogFatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    SerilogExtensions.CloseAndFlush();
+}

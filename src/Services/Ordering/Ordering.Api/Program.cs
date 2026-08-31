@@ -1,22 +1,40 @@
+using BuildingBlocks.Logging.Serilog;
 using Ordering.Api;
 using Ordering.Application;
 using Ordering.Infrastructure;
 using Ordering.Infrastructure.Data.Extensions;
 
-var builder = WebApplication.CreateBuilder(args);
+SerilogExtensions.ConfigureBootstrapLogger();
 
-builder.Services
-    .AddAppllicationServices(builder.Configuration)
-    .AddInfrastructureServices(builder.Configuration)
-    .AddApiServices(builder.Configuration);
-
-var app = builder.Build();
-
-app.UseApiServices();
-
-if (app.Environment.IsDevelopment())
+try
 {
-    await app.Services.InitialiseDatabaseAsync();
-}
+    var builder = WebApplication.CreateBuilder(args);
 
-app.Run();
+    builder.AddCustomSerilog("Ordering.Api");
+
+    builder.Services
+        .AddAppllicationServices(builder.Configuration)
+        .AddInfrastructureServices(builder.Configuration)
+        .AddApiServices(builder.Configuration);
+
+    var app = builder.Build();
+
+    app.UseCustomSerilogRequestLogging();
+
+    app.UseApiServices();
+
+    if (app.Environment.IsDevelopment())
+    {
+        await app.Services.InitialiseDatabaseAsync();
+    }
+
+    app.Run();
+}
+catch (Exception ex)
+{
+    SerilogExtensions.LogFatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    SerilogExtensions.CloseAndFlush();
+}

@@ -45,8 +45,37 @@ services:
       - RABBITMQ_DEFAULT_PASS=guest
     restart: always
     ports:
-    - "5672:5672"
-    - "15672:15672"
+      - "5672:5672"
+      - "15672:15672"
+
+  elasticsearch:
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    restart: always
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200 >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+
+  kibana:
+    container_name: kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    restart: always
+    ports:
+      - "5601:5601"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
 
   catalog.api:
     environment:
@@ -54,6 +83,7 @@ services:
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_HTTPS_PORTS=8081 
       - ConnectionStrings__Database=Server=catalogdb;Port=5432;Database=CatalogDb;User Id=postgres;Password=postgres;Include Error Detail=true
+      - ElasticConfiguration__Uri=http://elasticsearch:9200
     depends_on:
       - catalogdb
     ports:
@@ -74,6 +104,7 @@ services:
       - MessageBroker__Host=amqp://ecommerce-mq:5672
       - MessageBroker__UserName=guest
       - MessageBroker__Password=guest
+      - ElasticConfiguration__Uri=http://elasticsearch:9200
     depends_on:
       - basketdb
       - distributedcache
@@ -92,6 +123,7 @@ services:
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_HTTPS_PORTS=8081
       - ConnectionStrings__Database=Data Source=discountdb
+      - ElasticConfiguration__Uri=http://elasticsearch:9200
     ports:
       - "6002:8080"
       - "6062:8081"
@@ -109,6 +141,7 @@ services:
       - MessageBroker__UserName=guest
       - MessageBroker__Password=guest
       - FeatureManagement__OrderFullfilment=false
+      - ElasticConfiguration__Uri=http://elasticsearch:9200
     depends_on:
       - orderdb
       - messagebroker
@@ -125,6 +158,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_HTTPS_PORTS=8081
+      - ElasticConfiguration__Uri=http://elasticsearch:9200
     depends_on:
       - catalog.api
       - basket.api
@@ -142,6 +176,7 @@ services:
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_HTTPS_PORTS=8081
       - ApiSettings__GatewayAddress=http://apigateway:8080
+      - ElasticConfiguration__Uri=http://elasticsearch:9200
     ports:
       - "6005:8080"
       - "6065:8081"

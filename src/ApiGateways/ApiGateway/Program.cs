@@ -1,22 +1,40 @@
+using BuildingBlocks.Logging.Serilog;
 using Microsoft.AspNetCore.RateLimiting;
 
-var builder = WebApplication.CreateBuilder(args);
+SerilogExtensions.ConfigureBootstrapLogger();
 
-builder.Services.AddReverseProxy()
-    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
-
-builder.Services.AddRateLimiter(ratelimiterOptions =>
+try
 {
-    ratelimiterOptions.AddFixedWindowLimiter("fixed", options =>
+    var builder = WebApplication.CreateBuilder(args);
+
+    builder.AddCustomSerilog("ApiGateway");
+
+    builder.Services.AddReverseProxy()
+        .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
+
+    builder.Services.AddRateLimiter(ratelimiterOptions =>
     {
-        options.Window=TimeSpan.FromSeconds(10);
-        options.PermitLimit = 5;
+        ratelimiterOptions.AddFixedWindowLimiter("fixed", options =>
+        {
+            options.Window = TimeSpan.FromSeconds(10);
+            options.PermitLimit = 5;
+        });
     });
-});
 
-var app = builder.Build();
+    var app = builder.Build();
 
-app.UseRateLimiter();
-app.MapReverseProxy();
+    app.UseCustomSerilogRequestLogging();
 
-app.Run();
+    app.UseRateLimiter();
+    app.MapReverseProxy();
+
+    app.Run();
+}
+catch (Exception ex)
+{
+    SerilogExtensions.LogFatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    SerilogExtensions.CloseAndFlush();
+}

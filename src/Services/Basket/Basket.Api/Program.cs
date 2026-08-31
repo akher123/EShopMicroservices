@@ -1,76 +1,87 @@
 using Basket.Api.Data;
 using Basket.Api.Exceptions.Handler;
+using BuildingBlocks.Logging.Serilog;
 using BuildingBlocks.Messaging.MassTransit;
 using Discount.Grpc;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using System.Reflection;
 
-var builder = WebApplication.CreateBuilder(args);
-// Add services to the container
+SerilogExtensions.ConfigureBootstrapLogger();
 
-var assyembly = typeof(Program).Assembly;
-builder.Services.AddMediatR(config =>
+try
 {
-    config.RegisterServicesFromAssembly(assyembly);
-    config.AddOpenBehavior(typeof(ValidationBehavior<,>));
-    config.AddOpenBehavior(typeof(LoggingBehavior<,>));
-});
+    var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddCarter();
-// Data Services
-builder.Services.AddMarten(opts =>
-{
-    opts.Connection(builder.Configuration.GetConnectionString("Database")!);
-    opts.Schema.For<ShoppingCart>().Identity(x => x.UserName);
+    builder.AddCustomSerilog("Basket.Api");
 
-}).UseLightweightSessions();
-
-builder.Services.AddExceptionHandler<CustomExceptionHandler>();
-
-builder.Services.AddScoped<IBasketRepository, BasketRepository>();
-
-builder.Services.Decorate<IBasketRepository, CachedBasketRepository>(); // Scrutor Library
-
-builder.Services.AddStackExchangeRedisCache(options =>
-{
-    options.Configuration = builder.Configuration.GetConnectionString("Redis");
-});
-
-// Grpc Services
-
-builder.Services.AddGrpcClient<DiscountProtoService.DiscountProtoServiceClient>(options =>
-{
-    options.Address = new Uri(builder.Configuration["GrpcSettings:DiscountUrl"]!);
-})
-    .ConfigurePrimaryHttpMessageHandler(() =>
+    var assyembly = typeof(Program).Assembly;
+    builder.Services.AddMediatR(config =>
     {
-        var handler = new HttpClientHandler
-        {
-            ServerCertificateCustomValidationCallback =
-            HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-        };
-        return handler;
+        config.RegisterServicesFromAssembly(assyembly);
+        config.AddOpenBehavior(typeof(ValidationBehavior<,>));
+        config.AddOpenBehavior(typeof(LoggingBehavior<,>));
     });
-// Async Communication Services
-builder.Services.AddMesageBroker(builder.Configuration);
-// Cross-Cutting Services
-builder.Services.AddHealthChecks()
-       .AddNpgSql(builder.Configuration.GetConnectionString("Database")!)
-       .AddRedis(builder.Configuration.GetConnectionString("Redis")!);
 
+    builder.Services.AddCarter();
+    builder.Services.AddMarten(opts =>
+    {
+        opts.Connection(builder.Configuration.GetConnectionString("Database")!);
+        opts.Schema.For<ShoppingCart>().Identity(x => x.UserName);
 
-var app = builder.Build();
+    }).UseLightweightSessions();
 
+    builder.Services.AddExceptionHandler<CustomExceptionHandler>();
 
-// Configure the HTTP request pipeline
-app.MapCarter();
+    builder.Services.AddScoped<IBasketRepository, BasketRepository>();
 
-app.UseExceptionHandler(opts => { });
+    builder.Services.Decorate<IBasketRepository, CachedBasketRepository>();
 
-app.UseHealthChecks("/health", new HealthCheckOptions
+    builder.Services.AddStackExchangeRedisCache(options =>
+    {
+        options.Configuration = builder.Configuration.GetConnectionString("Redis");
+    });
+
+    builder.Services.AddGrpcClient<DiscountProtoService.DiscountProtoServiceClient>(options =>
+    {
+        options.Address = new Uri(builder.Configuration["GrpcSettings:DiscountUrl"]!);
+    })
+        .ConfigurePrimaryHttpMessageHandler(() =>
+        {
+            var handler = new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback =
+                HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+            };
+            return handler;
+        });
+
+    builder.Services.AddMesageBroker(builder.Configuration);
+
+    builder.Services.AddHealthChecks()
+           .AddNpgSql(builder.Configuration.GetConnectionString("Database")!)
+           .AddRedis(builder.Configuration.GetConnectionString("Redis")!);
+
+    var app = builder.Build();
+
+    app.UseCustomSerilogRequestLogging();
+
+    app.MapCarter();
+
+    app.UseExceptionHandler(opts => { });
+
+    app.UseHealthChecks("/health", new HealthCheckOptions
+    {
+        ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+    });
+
+    app.Run();
+}
+catch (Exception ex)
 {
-    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
-});
-
-app.Run();
+    SerilogExtensions.LogFatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    SerilogExtensions.CloseAndFlush();
+}

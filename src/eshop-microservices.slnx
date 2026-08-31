@@ -3,6 +3,7 @@
     <Project Path="ApiGateways/ApiGateway/ApiGateway.csproj" Id="43b43238-024f-42ba-89d1-8f951fffb2ba" />
   </Folder>
   <Folder Name="/BuildingBlocks/">
+    <Project Path="BuildingBlocks/BuildingBlocks.Logging/BuildingBlocks.Logging.csproj" />
     <Project Path="BuildingBlocks/BuildingBlocks.Messaging/BuildingBlocks.Messaging.csproj" Id="199098e1-4e7a-4d5b-a519-be6d20509bf5" />
     <Project Path="BuildingBlocks/BuildingBlocks/BuildingBlocks.csproj" Id="913aeed9-bbac-4256-a019-0f204f8c2208" />
   </Folder>

@@ -13,6 +13,12 @@ services:
   messagebroker:
       image: rabbitmq:management
 
+  elasticsearch:
+      image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+
+  kibana:
+      image: docker.elastic.co/kibana/kibana:8.15.0
+
   catalog.api:
     image: ${DOCKER_REGISTRY-}catalogapi
     build:
@@ -52,6 +58,7 @@ services:
 volumes:
   postgres_catalog:  
   postgres_basket:
+  elasticsearch_data:
 
 
 
