@@ -1,6 +1,6 @@
 # EShopMicroservices
 
-A sample e-commerce application built with **.NET microservices**, demonstrating distributed architecture patterns including API gateway routing, gRPC inter-service communication, event-driven messaging, centralized structured logging, and containerized deployment.
+A sample e-commerce application built with **.NET microservices**, demonstrating distributed architecture patterns including API gateway routing, gRPC inter-service communication, event-driven messaging, HTTP resilience and fault tolerance, centralized health monitoring, structured logging, and containerized deployment.
 
 ## Technology Summary
 
@@ -22,7 +22,9 @@ A sample e-commerce application built with **.NET microservices**, demonstrating
 | **Event-Driven Architecture** | Basket checkout → RabbitMQ → Ordering integration |
 | **Domain-Driven Design (DDD)** | Ordering domain events and aggregates |
 | **API Gateway** | YARP reverse proxy with rate limiting |
-| **Building Blocks** | Shared libraries for cross-cutting concerns, logging, and messaging |
+| **Resilience & Fault Tolerance** | Retry, timeout, and circuit breaker on HTTP/gRPC clients |
+| **Health Monitoring** | Per-service `/health` endpoints aggregated in WebStatus dashboard |
+| **Building Blocks** | Shared libraries for cross-cutting concerns, logging, messaging, and resilience |
 
 ### Services
 
@@ -34,6 +36,7 @@ A sample e-commerce application built with **.NET microservices**, demonstrating
 | **Ordering.Api** | REST API | Carter, MediatR, EF Core, SQL Server, MassTransit, Feature Management |
 | **ApiGateway** | Reverse proxy | YARP, ASP.NET Core rate limiting |
 | **Shopping.Web** | Web UI | ASP.NET Core Razor Pages, Refit HTTP clients |
+| **WebStatus** | Health dashboard | AspNetCore.HealthChecks.UI, in-memory storage |
 
 ### Libraries & Frameworks
 
@@ -51,7 +54,9 @@ A sample e-commerce application built with **.NET microservices**, demonstrating
 | **Grpc.AspNetCore** | gRPC server and client communication |
 | **Scrutor** | Assembly scanning and DI registration (Basket) |
 | **Microsoft.FeatureManagement** | Feature flags (Ordering) |
-| **AspNetCore.HealthChecks** | Health check endpoints for PostgreSQL, Redis, SQL Server |
+| **Microsoft.Extensions.Http.Resilience** | Standard resilience handlers (retry, timeout, circuit breaker) |
+| **AspNetCore.HealthChecks** | Health check endpoints for PostgreSQL, Redis, SQL Server, SQLite |
+| **AspNetCore.HealthChecks.UI** | Centralized health monitoring dashboard (WebStatus) |
 | **Serilog** | Structured logging across all host services |
 | **Elastic.Serilog.Sinks** | ECS-formatted logs shipped to Elasticsearch 8.x data streams |
 | **Elasticsearch / Kibana** | Centralized log storage and visualization |
@@ -78,6 +83,7 @@ Each service writes to its own ECS data stream:
 | Ordering.Api | `logs-ordering-api-default` |
 | ApiGateway | `logs-apigateway-default` |
 | Shopping.Web | `logs-shopping-web-default` |
+| WebStatus | `logs-webstatus-default` |
 
 Logs are enriched with `service.name`, machine name, and environment name. Filter in Kibana by `service.name` (e.g. `catalog-api`, `basket-api`).
 
@@ -131,6 +137,59 @@ finally
 }
 ```
 
+### Resilience & Fault Tolerance
+
+The shared **BuildingBlocks.Resilience** library wraps `Microsoft.Extensions.Http.Resilience` to apply consistent retry, timeout, and circuit breaker policies to outbound HTTP and gRPC clients.
+
+| Client | Service | Resilience config key |
+|---|---|---|
+| Refit → Catalog | Shopping.Web | `Resilience:CatalogService` |
+| Refit → Basket | Shopping.Web | `Resilience:BasketService` |
+| Refit → Ordering | Shopping.Web | `Resilience:OrderingService` |
+| gRPC → Discount | Basket.Api | `Resilience:DiscountGrpc` |
+
+**Configuration** (in `appsettings.json`):
+
+```json
+{
+  "Resilience": {
+    "CatalogService": {
+      "MaxRetryAttempts": 3,
+      "TimeoutSeconds": 10,
+      "CircuitBreakerSamplingSeconds": 30
+    }
+  }
+}
+```
+
+**Wiring** (via `BuildingBlocks.Resilience`):
+
+```csharp
+using BuildingBlocks.Resilience;
+
+builder.Services.AddRefitClient<ICatalogService>()
+    .ConfigureHttpClient(c =>
+    {
+        c.BaseAddress = new Uri(builder.Configuration["ApiSettings:GatewayAddress"]!);
+    })
+    .AddDefaultResilienceHandler(builder.Configuration, "CatalogService");
+```
+
+### Health Monitoring
+
+Every host service exposes a `/health` endpoint that returns a Health Checks UI–compatible JSON response. **WebStatus** aggregates these endpoints into a single dashboard.
+
+| Service | Health checks |
+|---|---|
+| Catalog.Api | PostgreSQL |
+| Basket.Api | PostgreSQL, Redis |
+| Discount.Grpc | SQLite |
+| Ordering.Api | SQL Server |
+| ApiGateway | Self |
+| Shopping.Web | Self, API Gateway reachability |
+
+WebStatus polls all services every 30 seconds and is available at [http://localhost:6006/hc-ui](http://localhost:6006/hc-ui) when running via Docker Compose.
+
 ### Data Stores
 
 | Store | Used By |
@@ -165,14 +224,16 @@ src/
 ├── BuildingBlocks/
 │   ├── BuildingBlocks/          # Shared CQRS, validation, behaviors
 │   ├── BuildingBlocks.Logging/  # Serilog + Elasticsearch logging setup
-│   └── BuildingBlocks.Messaging/# MassTransit + RabbitMQ setup
+│   ├── BuildingBlocks.Messaging/# MassTransit + RabbitMQ setup
+│   └── BuildingBlocks.Resilience/ # HTTP retry, timeout, circuit breaker
 ├── Services/
 │   ├── Basket/Basket.Api/
 │   ├── Catalog/Catalog.Api/
 │   ├── Discount/Discount.Grpc/
 │   └── Ordering/                # Domain, Application, Infrastructure, Api
 ├── WebApps/
-│   └── Shopping.Web/            # Razor Pages storefront
+│   ├── Shopping.Web/            # Razor Pages storefront
+│   └── WebStatus/               # Health monitoring dashboard
 ├── docker-compose.yml
 └── eshop-microservices.slnx
 ```
@@ -192,7 +253,6 @@ From the `src` folder:
 docker compose build --no-cache
 docker compose up -d
 docker compose ps
-
 ```
 
 ### Service Endpoints (default ports)
@@ -205,8 +265,11 @@ docker compose ps
 | Ordering API | 6003 | 6063 |
 | API Gateway | 6004 | 6064 |
 | Shopping Web | 6005 | 6065 |
+| WebStatus (Health Dashboard) | 6006 | — |
 | RabbitMQ Management UI | — | 15672 |
 | Kibana | 5601 | — |
+
+Individual service health endpoints: `http://localhost:<port>/health`
 
 ### Infrastructure Ports
 
@@ -219,6 +282,13 @@ docker compose ps
 | RabbitMQ | 5672 |
 | Elasticsearch | 9200 |
 | Kibana | 5601 |
+
+### Health Monitoring Dashboard
+
+1. Start the stack with Docker Compose.
+2. Open [http://localhost:6006/hc-ui](http://localhost:6006/hc-ui).
+3. View the status of all microservices (Catalog, Basket, Ordering, Discount, API Gateway, Shopping Web).
+4. Services are evaluated every 30 seconds; failures trigger notifications after 60 seconds.
 
 ### Viewing Logs in Kibana
 
